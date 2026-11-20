@@ -1,27 +1,31 @@
 # Releasing Garage Agent
 
-Releases are signed APKs on GitHub Releases, built by
-`.github/workflows/android-release.yml` when a version tag is pushed. The
-app is not on the Play Store, on purpose: Play's accessibility policy
-does not allow automation tools, and a rejection there puts the whole
-developer account at risk (Decision 007).
+Every release of Garage Agent is a signed APK on GitHub, built by
+`.github/workflows/android-release.yml` when I push a version tag. It is
+not on the Play Store, and that is on purpose. Play's accessibility
+policy doesn't allow automation tools, and a rejection there would put my
+whole developer account at risk, along with every other app in it
+(Decision 007).
 
 ## The signing key
 
 | What | Where |
 |---|---|
-| Keystore (PKCS12, alias `garage-agent`) | `~/.config/humanshaped/garage-agent/release.p12` on the owner's Mac |
+| Keystore (PKCS12, alias `garage-agent`) | `~/.config/humanshaped/garage-agent/release.p12` on my Mac |
 | Keystore password | macOS Keychain, service `humanshaped-garage-agent-signing` |
 | CI copies | GitHub secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` |
 | Certificate SHA-256 | `e8ff0012f92ad5bb7b70ddfc4d28470ca284e4c00bfca8b0a199c94771386464` |
+
+**The key is the one thing that can't be replaced.** If it is lost, no
+one can install an update: everyone would have to uninstall, reinstall,
+and add the door to Apple Home again.
 
 **Backups**: the keystore is also an identity in the login Keychain
 ("Garage Agent") and a file in iCloud Drive under "Human Shaped/Garage
 Agent signing key". The password is only in the login Keychain, which
 does not sync; keep a copy of it in the Passwords app or a password
-manager. If the key is lost, no one can install an update: everyone would
-have to uninstall, reinstall, and add the door to Apple Home again. The
-GitHub secrets cannot be read back out, so they are not a backup.
+manager. The GitHub secrets can't be read back out, so they are not a
+backup.
 
 To read the password: `security find-generic-password -s humanshaped-garage-agent-signing -w`.
 

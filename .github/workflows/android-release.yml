@@ -75,4 +75,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* \
             --title "Garage Agent ${{ steps.version.outputs.version }}" \
-            --notes "Install: download garage-agent-${{ steps.version.outputs.version }}.apk on the Android phone, open it, and follow the steps in the app. Full guide: https://github.com/${GITHUB_REPOSITORY}/tree/main/android-agent#readme"
+            --notes "To install: open this page on your extra Android phone, tap garage-agent-${{ steps.version.outputs.version }}.apk, allow the install, and open Garage Agent. It walks you through the rest. The full guide, including the iPhone steps, is at https://github.com/${GITHUB_REPOSITORY}#readme"

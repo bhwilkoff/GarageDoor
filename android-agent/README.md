@@ -1,235 +1,109 @@
-# Garage Agent: a myQ garage door in Apple Home, from a spare Android phone
+# Garage Agent, for builders
 
-Open and close a myQ (Chamberlain / LiftMaster) garage door from the
-iPhone lock screen, Control Center, Siri, or the Home app. No myQ API, no
-Homebridge, no IFTTT, no subscription, no new hardware, and no computer
-needed to set it up.
+If you just want the door on your lock screen, the
+[front page](../README.md) is all you need. This page is for folks who
+want to know how it works, build it themselves, or help make it better.
 
-An Android phone you already own runs the official myQ app plus this
-agent. The agent is its own HomeKit accessory, so Apple Home talks to it
-directly. When you tap the control, the agent presses the button in the
-myQ app on a hidden screen, then reports the door's real state back to
-Home. The phone's own screen is never touched, so the phone stays usable
-for other things.
+I wanted the whole thing to run on hardware I already owned, cost
+nothing, and survive Chamberlain changing its mind about who may talk to
+myQ. So, Garage Agent never touches myQ's servers directly. It uses the
+official myQ app, exactly the way a person would, on a screen no person
+can see.
 
 ```
 iPhone lock screen ──> Home hub (Apple TV / HomePod) ──> Android phone
-                                                          ├─ agent: HomeKit accessory
+                                                          ├─ Garage Agent: a HomeKit accessory
                                                           └─ myQ app on a hidden screen ──> myQ cloud ──> door
 ```
 
-Because it drives the official app instead of myQ's private API, it does
-not break when Chamberlain blocks unofficial clients (as it did in late
-2023). It can break if a myQ app update changes its screens. Turn off
-myQ's auto-update and you decide when that happens.
-
-Garage Agent is one of the apps built with the
-[Human Shaped](https://humanshaped.org) method.
-
-## What you need
-
-- **An Android phone, Android 13 or newer**, that can stay plugged in
-  and on your home Wi-Fi. Tested on a Pixel 8a (Android 17 beta). Other
-  phones should work but are untested.
-- **The myQ app** on that phone, signed in, with the door on its home
-  screen. One door per account is supported; the agent uses the first.
-  The myQ app must be in English.
-- **An Apple Home hub** (Apple TV or HomePod) to use the control away
-  from home and from the lock screen.
-
-## Install
-
-1. **On the Android phone**, open the
-   [latest release](https://github.com/bhwilkoff/GarageDoor/releases/latest) and download
-   `garage-agent-<version>.apk`. Open the download. Android asks you to
-   allow installs from your browser the first time; allow it, then
-   install.
-2. Open **Garage Agent**. It is a checklist: each step says what it is,
-   why it matters, and has one button that does it. Work down the list:
-   1. **myQ app**: install it and sign in. In the Play Store, open myQ,
-      tap ⋮, and uncheck **Enable auto update**.
-   2. **Wireless debugging**: the app takes you to the setting. If
-      Developer options are hidden, it tells you how to show them (tap
-      Build number seven times).
-   3. **Pair the agent**: tap Pair, then in Wireless debugging tap
-      **Pair device with pairing code**. A notification pops up asking for
-      the six-digit code; type it there. (If Do Not Disturb is on, the
-      notification will not pop up: swipe down from the top of the screen
-      to find it.) Garage Agent comes back on its own when it is done.
-   4. **Permissions** and 5. **Private myQ screen** finish on their own
-      within a minute.
-   6. **Door reading** shows the door's state.
-3. **On the iPhone**, add the door to Apple Home and to your lock screen.
-   See [On the iPhone](#on-the-iphone) below.
-
-When every step says **Done**, the line at the top of Garage Agent reads
-"Everything is working" and you can close the app.
-
-### On the iPhone
-
-You need iOS 18 or later for lock-screen and Control Center controls
-(adding the door to Home works on older versions). **Keep the iPhone on
-the same Wi-Fi as the Android phone while you add it**; afterwards it
-works from anywhere through your Home hub.
-
-**Add the door to Home**
-
-1. Open the **Home** app and tap **+** (top right), then **Add
-   Accessory**. A camera scanner opens.
-2. Don't scan anything. Tap **More options...** under the scanner. A list
-   of accessories nearby appears.
-3. Tap **Garage Door**.
-4. iOS warns that this is an **Uncertified Accessory**: Apple has not
-   certified it, because it is a home-built accessory, not a product.
-   Tap **Add Anyway**.
-5. Enter the eight-digit **setup code** shown at the top of Garage Agent
-   on the Android phone (it is shown only until a Home is paired).
-6. Pick a room and keep or change the name. Done: the door shows its real
-   state (Open, Closed, Opening, Closing) in the Home app.
-
-**Put it on the lock screen or in Control Center**
-
-- **Lock screen**: long-press the lock screen, tap **Customize**, then
-  **Lock Screen**. Remove one of the two controls at the bottom (tap −),
-  tap the empty slot (+), search for **Home**, choose **Accessory**, and
-  pick the garage door. Tap **Done**.
-- **Control Center**: swipe down from the top right, long-press an empty
-  area, tap **Add a Control**, search for **Home**, choose **Accessory**,
-  and pick the garage door.
-
-Opening a garage door from the lock screen asks for Face ID first; Apple
-treats garage doors as secure accessories. **Siri** works too: "Hey Siri,
-open the garage door" or "Is the garage door open?".
-
-**Let family members use it**
-
-In the Home app: **...** (top right) > **Home Settings** > **Invite
-People**, and invite them by Apple Account. Once they accept, the garage
-door is in their Home app and they can add it to their own lock screen.
-Nothing changes on the Android phone.
-
-**If you reinstall Garage Agent**
-
-A fresh install is a new accessory with a new setup code. In the Home
-app, long-press the old **Garage Door** (it shows No Response), scroll
-down, tap **Remove Accessory**, then add the new one as above and put it
-back on your lock screen.
-
-### Updates
-
-Garage Agent does not update itself. Either check the
-[releases page](https://github.com/bhwilkoff/GarageDoor/releases) now and then, or install
-[Obtainium](https://github.com/ImranR98/Obtainium) and add this
-repository's URL to it: Obtainium watches GitHub releases and offers each
-new version.
-
-### With a computer instead
-
-If you would rather build from source, connect the phone with adb (USB
-debugging or Wireless debugging) and run `./setup.sh` from this folder. It
-builds the agent, installs it, and grants its permissions; then do step 3
-of the checklist (Pair the agent) on the phone. `./setup.sh <file.apk>`
-installs a downloaded release instead of building. A source build and a
-release are signed differently, so switching between them means
-uninstalling first and adding the door to Apple Home again.
-
-## Keeping it working
-
-- **After the phone restarts, unlock it once.** Android keeps every
-  app's data, including the agent's keys and your myQ sign-in, locked
-  until the first unlock after boot. Within about a minute of the unlock,
-  the agent restarts on its own, brings back the hidden screen, and reads
-  the door. Until then Home shows the door as "No Response".
-- Keep the phone **plugged in and on home Wi-Fi**. Wireless debugging,
-  which the agent uses to restart its hidden screen, only works on Wi-Fi.
-- Keep **automatic system updates off** if you can, so the phone does not
-  reboot itself overnight and wait for an unlock.
-- **Don't sign out of myQ.** A force-stop of the agent is recovered
-  automatically; a signed-out myQ is not.
-
-## When something is wrong
-
-Open **Garage Agent** on the phone. The line at the top names the next
-thing to fix, and the checklist below it says what each part is and what
-to do. Most problems fix themselves within a minute or two; the buttons
-retry right away.
-
-| Home shows | Likely cause | Fix |
-|---|---|---|
-| No Response, right after a reboot | Phone not unlocked yet | Unlock it once |
-| No Response, all the time | myQ signed out, or a myQ update changed its screens | Open Garage Agent; step 6 shows the problem. Open myQ to sign in |
-| The control works at home but not away | No Home hub, or the hub is off | Check Home > Home Settings > Home Hubs |
-| Commands briefly show on the phone's screen | The hidden screen is down; the agent used the real one | Garage Agent step 5; it restarts on its own |
-| **Garage Door** is not in the list under More options | The iPhone is on a different Wi-Fi (or a guest network), or the door is already paired | Put both phones on the same Wi-Fi. If Garage Agent shows no setup code, it is paired already: remove it from the other Home, or long-press **Reset Apple Home** in Garage Agent |
-| Home says the setup code is wrong, or adding fails | A typo, or an old pairing attempt got stuck | Check the code at the top of Garage Agent and try again. Still failing: long-press **Reset Apple Home** in Garage Agent and start over |
-| An old **Garage Door** shows No Response next to a working one | Left over from a reinstall | Long-press it > **Remove Accessory** |
-| Garage Agent step 3 says the phone no longer accepts the agent's key | The pairing was removed, or wireless debugging is off | Tap Pair again |
-
-**Asking for help.** Tap **Share report** in Garage Agent. It makes a
-plain-text summary of every check and the recent log, with no passwords
-and no setup code. Paste it into a
-[new issue](https://github.com/bhwilkoff/GarageDoor/issues/new?template=problem.md).
-
 ## How it works
 
-- **HomeKit accessory**: a HomeKit Accessory Protocol (HAP) server
-  written from scratch in Kotlin with no dependencies. It covers SRP-6a
-  pair setup, Ed25519, X25519, HKDF-SHA512, ChaCha20-Poly1305, encrypted
+- **It is its own HomeKit accessory.** A HomeKit Accessory Protocol
+  server, written from scratch in Kotlin with no dependencies: SRP-6a
+  pairing, Ed25519, X25519, HKDF-SHA512, ChaCha20-Poly1305, encrypted
   sessions, events, and the timed writes Home uses for garage doors. It
-  advertises itself over Bonjour with Android's NsdManager. The code is
-  in `app/src/main/java/org/humanshaped/garageagent/hap/`.
-- **Driver**: an accessibility service reads the door status from the
-  myQ app and dispatches a gesture on its button. A command counts as
-  accepted only when myQ shows the change. A failure is reported to Home
-  as "No Response", never as a false state.
-- **Hidden screen**: `DisplayHost` runs as the shell user and creates a
-  private, always-unlocked virtual display with its own focus. myQ lives
-  there permanently. The phone's real screen and focus are left alone.
-- **Pairing without a computer**: `AdbPair.kt` is the client half of
-  Android's "Pair device with pairing code" (TLS 1.3, then SPAKE2 over
-  edwards25519 as BoringSSL does it, then AES-128-GCM), so the agent pairs
-  its own key from the code you type.
-- **Self-healing**: a sticky foreground service and a boot receiver keep
-  the agent running. A watchdog re-enables the accessibility service if
-  Android unbinds it. If the hidden screen disappears, the agent restarts
-  `DisplayHost` itself through its paired wireless debugging connection
+  announces itself over Bonjour with Android's own NsdManager. The code
+  is in `app/src/main/java/org/humanshaped/garageagent/hap/`.
+- **It presses the real button.** An accessibility service reads the
+  door's status in myQ and taps its button. A command only counts once
+  myQ shows the change. When it can't trust what it sees, it tells Home
+  "No Response" rather than guessing.
+- **It keeps myQ on a hidden screen.** `DisplayHost` runs as Android's
+  shell user and creates a private virtual display that is always
+  unlocked and has its own focus. myQ lives there. The phone's real
+  screen is never touched, which is why the phone stays usable for other
+  things.
+- **It pairs itself, no computer needed.** `AdbPair.kt` is the client
+  half of Android's "Pair device with pairing code": TLS 1.3, then SPAKE2
+  over edwards25519 the way BoringSSL does it, then AES-128-GCM. That
+  lets the agent pair its own key from the code you type, grant its own
+  permissions, and restart the hidden screen after a reboot.
+- **It heals itself.** A sticky foreground service and a boot receiver
+  keep it running. A watchdog re-enables the accessibility service when
+  Android drops it, and the agent restarts `DisplayHost` through its own
+  Wireless debugging connection when the hidden screen disappears
   (`AdbSelf.kt`).
 
-The reasoning behind each choice is in `../DECISIONS.md` (004 to 007).
+The reasons behind each of those choices are in
+[`../DECISIONS.md`](../DECISIONS.md), Decisions 004 through 007.
 
-## Security
+## Building it yourself
 
-- **The agent has shell-level access to its own phone.** It needs this to
-  grant its own permissions and restart the hidden screen after a
-  reboot. Its key is created on the phone and kept in storage encrypted
-  by the Android Keystore; it never leaves the phone. It appears in
-  Wireless debugging's paired devices as `garage-agent`; remove it there
-  to revoke it.
-- **Only devices paired with your Home can control the door.** HomeKit
-  pairing uses the setup code once. After that, every session is
-  end-to-end encrypted, and the accessory accepts only controllers it
-  has paired with. Long-press **Reset Apple Home** in the app to remove
-  every pairing.
-- **Your myQ password never leaves the myQ app.** The agent never sees it.
-- **Releases are signed** with one key, certificate SHA-256
-  `e8ff0012f92ad5bb7b70ddfc4d28470ca284e4c00bfca8b0a199c94771386464`.
-  Each release also lists the APK's SHA-256 checksum.
+You will need Android Studio (or the Android SDK and JDK 17 or newer)
+and a phone connected with adb, over USB or Wireless debugging. Then,
+from this folder:
 
-## Removing it
+```
+./setup.sh
+```
 
-Remove the accessory in the Home app, then uninstall Garage Agent from
-the phone. Remove `garage-agent` from Wireless debugging's paired
-devices.
+That builds Garage Agent, installs it, grants its permissions, and opens
+it on the phone. Finish with step 3 of the checklist (Pair the agent) on
+the phone. `./setup.sh garage-agent-1.0.apk` installs a downloaded
+release instead of building one.
 
-## Development
+One catch: a build from source and a release are signed with different
+keys, so Android won't update one with the other. Switching means
+uninstalling first and adding the door to Apple Home again.
 
-All testing happens on a real phone, never an emulator. On-device tests
-(RFC test vectors and a loopback HomeKit controller):
+## Testing
+
+Everything is tested on a real phone, never an emulator. The on-device
+tests check every piece of cryptography against its published test
+vectors, and run a full HomeKit pairing over loopback:
 
 ```
 ./gradlew connectedDebugAndroidTest
 ```
 
-This uninstalls the app afterwards, which erases the HomeKit pairing.
-Run it before pairing with Home, not after. Releasing is in
+Be ready for one side effect: this uninstalls the app when it finishes,
+which erases the HomeKit pairing. Run it before you add the door to
+Home, not after.
+
+The repository also has a few checks for its own docs and settings (US
+spelling, version numbers, agent instructions). From the top folder:
+
+```
+python3 tools/test_us_english.py
+python3 tools/test_version_contract.py
+python3 tools/test_agent_files.py
+```
+
+## Releasing
+
+Releases are signed APKs on GitHub, built automatically when a version
+tag is pushed. The whole process, and where the signing key lives, is in
 [RELEASING.md](RELEASING.md).
+
+## Where this came from
+
+This repository started as a copy of
+[UniversalAppTemplate](https://github.com/bhwilkoff/UniversalAppTemplate),
+the template I start my apps from. That is why you will find
+an iOS shell, a web shell, and a folder of skills that Garage Agent
+doesn't use yet. `AGENTS.md` is what any coding agent reads before it
+touches the code, and `SCRATCHPAD.md` is where the work stands right now.
+
+Found a bug, or got it working on a phone I haven't tried? Open an
+[issue](https://github.com/bhwilkoff/GarageDoor/issues). I'd love to
+hear about it.
