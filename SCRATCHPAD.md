@@ -7,10 +7,8 @@
 - **Active milestone**: M2, survive reboots without a computer.
 - **Last session**: 2026-11-20 (see log).
 - **Next actions**:
-  1. Owner: on the iPhone, remove the old Garage Door accessory and add
-     the new one (code shown in Garage Agent), then re-add the control.
-  2. Owner: Garage Agent step 3 (Pair) on the Pixel.
-  3. Watch for Google's email confirming the package registration.
+  1. Watch for Google's email confirming the package registration.
+  2. Someone installs from the README on a phone other than the Pixel.
 - **Open questions**:
   1. Family members: Apple Home sharing, when wanted.
 
@@ -56,4 +54,7 @@
 - **Then**: v1.0 released by CI (signed, verified); repo made public;
   package registered in Play Console (in review); key backed up to the
   login Keychain and iCloud Drive; Pixel moved to the v1.0 release.
-- **Left**: Pixel unpaired with Home until the owner re-adds it.
+- **Then**: owner re-added the door; v1.1 shipped (update notices,
+  calmer screen, QR download). Installing 1.1 over 1.0 kept the Home
+  pairing, permissions, and the agent's adb key (verified on the Pixel).
+- **Left**: Pixel on 1.1, door closed, everything working.
