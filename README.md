@@ -28,8 +28,9 @@ No new hardware. No subscription. No computer. No typing commands.
 ## What you need
 
 - **An extra Android phone** (Android 13 or newer) that can stay plugged
-  in at home, on your Wi-Fi. You can keep using it for other things; the
-  app never takes over its screen.
+  in at home, on your Wi-Fi. Its screen can stay off and locked. You can
+  even keep using it for other things; the app never takes over its
+  screen.
 - **The myQ app** on that phone, signed in to your account.
 - **An iPhone** with iOS 18 or newer, for the button on the lock screen.
 - **An Apple TV or HomePod** at home, if you want the button to work
