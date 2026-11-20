@@ -15,7 +15,10 @@ developer account at risk (Decision 007).
 | CI copies | GitHub secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` |
 | Certificate SHA-256 | `e8ff0012f92ad5bb7b70ddfc4d28470ca284e4c00bfca8b0a199c94771386464` |
 
-**Back up the keystore file and its password together** in a password
+**Backups**: the keystore is also an identity in the login Keychain
+("Garage Agent") and a file in iCloud Drive under "Human Shaped/Garage
+Agent signing key". The password is only in the login Keychain, which
+does not sync; keep a copy of it in the Passwords app or a password
 manager. If the key is lost, no one can install an update: everyone would
 have to uninstall, reinstall, and add the door to Apple Home again. The
 GitHub secrets cannot be read back out, so they are not a backup.
@@ -46,8 +49,11 @@ builds and checks the APK and attaches it to the run, without publishing.
 
 From 2027 in most countries (September 30, 2026 in Brazil, Indonesia,
 Singapore, and Thailand), certified Android phones install sideloaded
-apps only from registered developers. The owner's identity is already
-verified through Play Console. What remains is registering this app:
+apps only from registered developers. The owner's identity is verified
+through Play Console (Learning is Change, Inc.), and
+`org.humanshaped.garageagent` was registered with the release key on
+2026-11-20 (Play Console > Android developer verification; status "In
+review" until Google confirms by email). To register another package:
 
 1. Play Console > **Android developer verification** (or the Android
    Developer Console's **Packages** page): register the package name

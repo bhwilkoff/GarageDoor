@@ -7,13 +7,10 @@
 - **Active milestone**: M2, survive reboots without a computer.
 - **Last session**: 2026-11-20 (see log).
 - **Next actions**:
-  1. Owner: back up the release keystore and its password (RELEASING.md).
-  2. Owner: OK to commit, push, and tag v1.0 (first CI release); repo is
-     private, so make it public when ready to share.
-  3. Owner: register `org.humanshaped.garageagent` in Play Console's
-     Android developer verification (cert SHA-256 in RELEASING.md).
-  4. Move the owner's Pixel from the old `home.garagedoor.agent` dev build
-     to the release (uninstall old, re-add in Apple Home, pair in app).
+  1. Owner: on the iPhone, remove the old Garage Door accessory and add
+     the new one (code shown in Garage Agent), then re-add the control.
+  2. Owner: Garage Agent step 3 (Pair) on the Pixel.
+  3. Watch for Google's email confirming the package registration.
 - **Open questions**:
   1. Family members: Apple Home sharing, when wanted.
 
@@ -56,4 +53,7 @@
   setup checklist with fixes and Share report, icon; package renamed to
   `org.humanshaped.garageagent`; release key (Keychain), CI workflow,
   GitHub secrets set, local signed release verified (Decision 007).
-- **Left**: Pixel still runs the old dev package; nothing committed.
+- **Then**: v1.0 released by CI (signed, verified); repo made public;
+  package registered in Play Console (in review); key backed up to the
+  login Keychain and iCloud Drive; Pixel moved to the v1.0 release.
+- **Left**: Pixel unpaired with Home until the owner re-adds it.
