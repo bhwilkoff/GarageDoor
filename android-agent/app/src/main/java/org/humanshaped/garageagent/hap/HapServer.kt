@@ -14,13 +14,21 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 /** What the garage door accessory needs from the rest of the agent. */
 interface GarageBackend {
+    /** The door slots Home sees, ascending. Slot 0 is the first door and keeps the original identifiers. */
+    fun doorSlots(): List<Int>
+    fun doorName(slot: Int): String
+
+    /** The name Home shows for a door (ConfiguredName); Home writes it when someone renames the tile. */
+    fun doorLabel(slot: Int): String
+    fun setDoorLabel(slot: Int, label: String)
+
     /** HomeKit CurrentDoorState (0 open, 1 closed, 2 opening, 3 closing, 4 stopped), or null when unknown. */
-    fun currentDoorState(): Int?
-    fun targetDoorState(): Int
-    fun obstructionDetected(): Boolean
+    fun currentDoorState(slot: Int): Int?
+    fun targetDoorState(slot: Int): Int
+    fun obstructionDetected(slot: Int): Boolean
 
     /** Blocks until the command is accepted or refused; returns a HAP status (0 = success). */
-    fun setTargetDoorState(target: Int): Int
+    fun setTargetDoorState(slot: Int, target: Int): Int
     fun identify()
 }
 
@@ -33,10 +41,21 @@ object Iid {
     const val SERIAL = 6
     const val FIRMWARE = 7
     const val PROTOCOL_VERSION = 9
+    const val DOOR_SERVICE = 10
     const val CURRENT_DOOR = 11
     const val TARGET_DOOR = 12
     const val OBSTRUCTION = 13
     const val DOOR_NAME = 14
+    const val CONFIGURED_NAME = 15
+
+    /**
+     * Each door is one Garage Door Opener service. Slot 0 uses 10 to 14, exactly as
+     * before doors could be more than one, so an existing Home setup never changes;
+     * slot n uses n*100 + 10 to 14.
+     */
+    fun door(slot: Int, local: Int) = slot * 100 + local
+    fun slotOf(iid: Int) = iid / 100
+    fun localOf(iid: Int) = iid % 100
 }
 
 object HapStatus {
@@ -83,30 +102,47 @@ class HapServer(
         val protocol = JSONObject().put("iid", 8).put("type", "A2").put("characteristics", JSONArray(listOf(
             ch(Iid.PROTOCOL_VERSION, "37", listOf("pr"), "string", "1.1.0"),
         )))
-        val current = ch(Iid.CURRENT_DOOR, "E", listOf("pr", "ev"), "uint8")
-            .put("minValue", 0).put("maxValue", 4).put("minStep", 1)
-            .put("valid-values", JSONArray(listOf(0, 1, 2, 3, 4)))
-        val target = ch(Iid.TARGET_DOOR, "32", listOf("pr", "pw", "ev"), "uint8")
-            .put("minValue", 0).put("maxValue", 1).put("minStep", 1)
-            .put("valid-values", JSONArray(listOf(0, 1)))
-        val door = JSONObject().put("iid", 10).put("type", "41").put("primary", true)
-            .put("characteristics", JSONArray(listOf(
-                current, target,
-                ch(Iid.OBSTRUCTION, "24", listOf("pr", "ev"), "bool"),
-                ch(Iid.DOOR_NAME, "23", listOf("pr"), "string", name),
-            )))
-        val accessory = JSONObject().put("aid", Iid.AID).put("services", JSONArray(listOf(info, protocol, door)))
+        fun doorService(slot: Int): JSONObject {
+            fun d(local: Int) = Iid.door(slot, local)
+            val current = ch(d(Iid.CURRENT_DOOR), "E", listOf("pr", "ev"), "uint8")
+                .put("minValue", 0).put("maxValue", 4).put("minStep", 1)
+                .put("valid-values", JSONArray(listOf(0, 1, 2, 3, 4)))
+            val target = ch(d(Iid.TARGET_DOOR), "32", listOf("pr", "pw", "ev"), "uint8")
+                .put("minValue", 0).put("maxValue", 1).put("minStep", 1)
+                .put("valid-values", JSONArray(listOf(0, 1)))
+            return JSONObject().put("iid", d(Iid.DOOR_SERVICE)).put("type", "41").put("primary", slot == 0)
+                .put("characteristics", JSONArray(listOf(
+                    current, target,
+                    ch(d(Iid.OBSTRUCTION), "24", listOf("pr", "ev"), "bool"),
+                    ch(d(Iid.DOOR_NAME), "23", listOf("pr"), "string", if (slot == 0) name else backend.doorName(slot)),
+                    // Home labels services of a multi-door accessory by ConfiguredName, not Name.
+                    ch(d(Iid.CONFIGURED_NAME), "E3", listOf("pr", "pw", "ev"), "string", backend.doorLabel(slot)),
+                )))
+        }
+        val services = listOf(info, protocol) + backend.doorSlots().map { doorService(it) }
+        val accessory = JSONObject().put("aid", Iid.AID).put("services", JSONArray(services))
         return JSONObject().put("accessories", JSONArray(listOf(accessory)))
     }
 
     /** Value of a readable characteristic, or a HAP status error. */
-    private fun readValue(iid: Int): Pair<Any?, Int> = when (iid) {
-        Iid.CURRENT_DOOR -> backend.currentDoorState()?.let { it to 0 } ?: (null to HapStatus.COMMUNICATION_FAILURE)
-        Iid.TARGET_DOOR -> backend.targetDoorState() to 0
-        Iid.OBSTRUCTION -> backend.obstructionDetected() to 0
+    private fun doorSlot(iid: Int): Int? = Iid.slotOf(iid).takeIf { Iid.localOf(iid) in Iid.CURRENT_DOOR..Iid.CONFIGURED_NAME && it in backend.doorSlots() }
+
+    private fun readValue(iid: Int): Pair<Any?, Int> {
+        val slot = doorSlot(iid)
+        if (slot != null) return when (Iid.localOf(iid)) {
+            Iid.CURRENT_DOOR -> backend.currentDoorState(slot)?.let { it to 0 } ?: (null to HapStatus.COMMUNICATION_FAILURE)
+            Iid.TARGET_DOOR -> backend.targetDoorState(slot) to 0
+            Iid.OBSTRUCTION -> backend.obstructionDetected(slot) to 0
+            Iid.CONFIGURED_NAME -> backend.doorLabel(slot) to 0
+            else -> (if (slot == 0) name else backend.doorName(slot)) to 0
+        }
+        return accessoryValue(iid)
+    }
+
+    private fun accessoryValue(iid: Int): Pair<Any?, Int> = when (iid) {
         Iid.MANUFACTURER -> "GarageDoor" to 0
         Iid.MODEL -> "myQ Agent" to 0
-        Iid.NAME, Iid.DOOR_NAME -> name to 0
+        Iid.NAME -> name to 0
         Iid.SERIAL -> identity.deviceId.replace(":", "") to 0
         Iid.FIRMWARE -> firmware to 0
         Iid.PROTOCOL_VERSION -> "1.1.0" to 0
@@ -468,7 +504,7 @@ class HapServer(
                 if (aid != Iid.AID) status = HapStatus.NOT_FOUND
                 if (status == 0 && o.has("ev")) {
                     val on = o.optBoolean("ev", false)
-                    if (iid in setOf(Iid.CURRENT_DOOR, Iid.TARGET_DOOR, Iid.OBSTRUCTION)) {
+                    if (doorSlot(iid) != null && Iid.localOf(iid) in setOf(Iid.CURRENT_DOOR, Iid.TARGET_DOOR, Iid.OBSTRUCTION, Iid.CONFIGURED_NAME)) {
                         if (on) subscriptions.add(iid) else subscriptions.remove(iid)
                     } else status = HapStatus.NO_NOTIFICATION
                 }
@@ -480,17 +516,28 @@ class HapServer(
                         is String -> raw.toIntOrNull()
                         else -> null
                     }
-                    status = when (iid) {
-                        Iid.TARGET_DOOR -> {
+                    val slot = doorSlot(iid)
+                    status = when {
+                        slot != null && Iid.localOf(iid) == Iid.CONFIGURED_NAME -> {
+                            val label = (raw as? String)?.trim()?.take(64)
+                            if (label.isNullOrEmpty()) HapStatus.INVALID_VALUE
+                            else {
+                                backend.setDoorLabel(slot, label)
+                                notifyChanged(iid, label, except = this)
+                                0
+                            }
+                        }
+                        slot != null && Iid.localOf(iid) == Iid.TARGET_DOOR -> {
                             if (intValue == null || intValue !in 0..1) HapStatus.INVALID_VALUE
                             else {
-                                log("Controller ${controllerId?.take(8)} asked to ${if (intValue == 0) "OPEN" else "CLOSE"}")
-                                val st = backend.setTargetDoorState(intValue)
-                                if (st == 0) notifyChanged(Iid.TARGET_DOOR, backend.targetDoorState(), except = this)
+                                val which = if (slot == 0) "" else " ${backend.doorName(slot)}"
+                                log("Controller ${controllerId?.take(8)} asked to ${if (intValue == 0) "OPEN" else "CLOSE"}$which")
+                                val st = backend.setTargetDoorState(slot, intValue)
+                                if (st == 0) notifyChanged(iid, backend.targetDoorState(slot), except = this)
                                 st
                             }
                         }
-                        Iid.IDENTIFY -> { backend.identify(); 0 }
+                        iid == Iid.IDENTIFY -> { backend.identify(); 0 }
                         else -> HapStatus.READ_ONLY
                     }
                     if (o.optBoolean("r", false)) {

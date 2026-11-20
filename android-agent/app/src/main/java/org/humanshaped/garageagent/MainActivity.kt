@@ -218,7 +218,19 @@ class MainActivity : Activity() {
         val paired = AdbSelf.hasKey()
         val shellBroken = paired && AdbSelf.lastShellOk == false
         val hidden = Agent.driver?.hiddenDisplayId() != null
-        val readingFresh = s.seenAt > 0 && System.currentTimeMillis() - s.seenAt < 5 * 60_000L && s.fault == null
+        val real = Agent.realDoors()
+        val now = System.currentTimeMillis()
+        val readingFresh = Agent.screenProblem == null && real.all { it.snapshot.seenAt > 0 && now - it.snapshot.seenAt < 5 * 60_000L && it.snapshot.fault == null }
+        val gone = real.firstOrNull { it.slot != 0 && it.missingSince > 0 && now - it.missingSince > 10 * 60_000L }
+        fun reading(d: Agent.Door): String {
+            val x = d.snapshot
+            val prefix = if (real.size > 1 || d.isTest) "${d.label}: " else "Last reading: "
+            return prefix + when {
+                x.fault != null -> "problem: ${x.fault}."
+                x.seenAt == 0L -> "no reading yet."
+                else -> "${phaseLabel(x.phase)}, ${ago(x.seenAt)}."
+            }
+        }
         val id = Agent.identity
         val pairing = PairingFlow.step
         val missing = buildList {
@@ -231,7 +243,7 @@ class MainActivity : Activity() {
                 "1. myQ app",
                 "The agent works the official myQ app for you, so myQ must be installed and signed in on this phone.",
                 myq != null,
-                if (myq == null) "myQ is not installed." else "Installed (version $myq). Turn off its auto-update in the Play Store so a redesign cannot surprise you.",
+                if (myq == null) "myQ is not installed." else "Installed (version $myq). Turn off its auto-update in the Play Store so a redesign cannot surprise you. More than one door? Give each its own name in myQ; that is how Garage Agent tells them apart.",
                 if (myq == null) "Get myQ" else "Open myQ",
             ) {
                 if (myq == null) startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${MyqDriver.MYQ}")))
@@ -288,22 +300,20 @@ class MainActivity : Activity() {
                 if (hidden || !paired) null else "Start",
             ) { background("Starting the private screen") { AdbSelf.startDisplayHost(this) } },
             Check(
-                "6. Door reading",
-                "The agent checks the door in myQ every minute and tells Apple Home. A reading it cannot trust shows in Home as No Response, never as a guess.",
+                if (real.size > 1) "6. Doors" else "6. Door reading",
+                "The agent checks myQ every minute and tells Apple Home. Each door is matched by its name in myQ, so the right door always moves. A reading it cannot trust shows in Home as No Response, never as a guess.",
                 readingFresh,
-                when {
-                    s.fault != null -> "Problem: ${s.fault}"
-                    s.seenAt == 0L -> "No reading yet."
-                    else -> "Last reading: ${phaseLabel(s.phase)}, ${ago(s.seenAt)}."
-                },
-                "Check now",
-            ) { Agent.requestRefresh("checked from the agent screen") },
+                (listOfNotNull(Agent.screenProblem) + Agent.doors().map { reading(it) }).joinToString("\n"),
+                if (gone != null) "Remove \"${gone.myqName}\" from Apple Home" else "Check now",
+            ) {
+                if (gone != null) Agent.forgetDoor(gone.slot) else Agent.requestRefresh("checked from the agent screen")
+            },
             Check(
                 "7. Apple Home",
                 "Add the door in the Home app on your iPhone, then add it to Control Center or the lock screen. Remote use needs a Home hub (Apple TV or HomePod).",
                 id.isPaired,
                 if (id.isPaired) {
-                    "Your Home is connected (${id.pairings.size} device${if (id.pairings.size == 1) "" else "s"})."
+                    "Your Home is connected (${id.pairings.size} device${if (id.pairings.size == 1) "" else "s"}). Add a door in myQ and it shows up in Home on its own."
                 } else {
                     "In the Home app: + > Add Accessory > More options > ${Agent.ACCESSORY_NAME} > Add Anyway, then enter the code above."
                 },
@@ -323,10 +333,14 @@ class MainActivity : Activity() {
         val s = Agent.snapshot
         val list = checks()
         val todo = list.count { !it.ok }
+        val real = Agent.realDoors()
+        val phases = real.map { it.snapshot.phase }.distinct()
         door.text = when {
             s.seenAt == 0L -> if (todo > 0) "Let's set up your garage door" else "Waiting for the first reading"
-            else -> "Door ${phaseLabel(s.phase)}" + if (todo > 0) " · $todo to fix" else ""
-        }
+            real.size == 1 -> "Door ${phaseLabel(s.phase)}"
+            phases.size == 1 -> (if (real.size == 2) "Both doors " else "All ${real.size} doors ") + phaseLabel(phases.first())
+            else -> real.joinToString(" · ") { "${it.label} ${phaseLabel(it.snapshot.phase)}" }
+        } + if (todo > 0 && s.seenAt != 0L) " · $todo to fix" else ""
         val first = list.firstOrNull { !it.ok }
         next.text = when {
             first != null -> "Next: ${first.title.substringAfter(". ")}. ${first.detail}"
@@ -354,12 +368,19 @@ class MainActivity : Activity() {
             appendLine()
             checks().forEach { appendLine("[${if (it.ok) "ok" else "NEEDS ATTENTION"}] ${it.title}: ${it.detail}") }
             appendLine()
-            appendLine("Door: ${s.phase} raw=\"${s.rawText}\" seen=${if (s.seenAt == 0L) "never" else DateUtils.getRelativeTimeSpanString(s.seenAt)} fault=${s.fault}")
+            Agent.doors().forEach { d ->
+                val x = d.snapshot
+                appendLine("Door ${d.slot} (${d.label}): ${x.phase} raw=\"${x.rawText}\" seen=${if (x.seenAt == 0L) "never" else ago(x.seenAt)} fault=${x.fault}")
+            }
+            Agent.screenProblem?.let { appendLine("Problem: $it") }
             appendLine("Apple Home: paired=${id.isPaired} devices=${id.pairings.size} sessions=${Agent.controllerSessions()}")
             appendLine("Wireless debugging on=${AdbSelf.wirelessDebuggingOn(this@MainActivity)} lastShellOk=${AdbSelf.lastShellOk}")
             appendLine()
             appendLine("Recent log:")
             Agent.recentLog(80).forEach { appendLine(it) }
+            appendLine()
+            appendLine("myQ screen outline (structure only, for adapting to myQ changes):")
+            append(Agent.driver?.outline() ?: "(the agent cannot see myQ right now)")
         }.replace(id.setupCode, "xxx-xx-xxx")
         val send = Intent(Intent.ACTION_SEND).setType("text/plain")
             .putExtra(Intent.EXTRA_SUBJECT, "Garage Agent report")

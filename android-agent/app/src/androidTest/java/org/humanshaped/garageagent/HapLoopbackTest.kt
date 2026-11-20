@@ -30,10 +30,14 @@ class HapLoopbackTest {
         @Volatile var current = 1
         @Volatile var target = 1
         val commands = mutableListOf<Int>()
-        override fun currentDoorState() = current
-        override fun targetDoorState() = target
-        override fun obstructionDetected() = false
-        override fun setTargetDoorState(target: Int): Int { commands.add(target); this.target = target; return 0 }
+        override fun doorSlots() = listOf(0)
+        override fun doorName(slot: Int) = "Test Door"
+        override fun doorLabel(slot: Int) = "Test Door"
+        override fun setDoorLabel(slot: Int, label: String) {}
+        override fun currentDoorState(slot: Int) = current
+        override fun targetDoorState(slot: Int) = target
+        override fun obstructionDetected(slot: Int) = false
+        override fun setTargetDoorState(slot: Int, target: Int): Int { commands.add(target); this.target = target; return 0 }
         override fun identify() {}
     }
 

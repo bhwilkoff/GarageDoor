@@ -25,6 +25,8 @@ class MyqDriver(private val service: AgentService) {
     companion object {
         const val MYQ = "com.chamberlain.android.liftmaster.myq"
         private const val STATUS_ID = "device_status"
+        private const val NAME_ID = "device_name"
+        private const val BUTTON_ID = "device_state_icon"
         private const val BUTTON_DESC = "device state icon"
         private const val HOME_TAB_ID = "$MYQ:id/bottom_nav_tab_1"
         private const val OPEN_TIMEOUT_MS = 30_000L
@@ -32,7 +34,17 @@ class MyqDriver(private val service: AgentService) {
         private const val SETTLE_WAIT_MS = 45_000L
     }
 
-    data class Screen(val status: String?, val button: Rect?, val homeTab: Rect?, val texts: List<String>)
+    /** One door on myQ's home screen: its name, status line, and button, read from the same card. */
+    data class Card(val name: String?, val status: String?, val button: Rect?)
+
+    data class Screen(val cards: List<Card>, val homeTab: Rect?, val texts: List<String>) {
+        /** Any door's status: whether myQ is showing doors at all. */
+        val status: String? get() = cards.firstOrNull { it.status != null }?.status
+        val signature: String get() = cards.joinToString("|") { "${it.name}=${it.status}" }
+
+        /** The card for a door by its myQ name; with no name, the only card if there is exactly one. */
+        fun card(name: String?): Card? = if (name == null) cards.singleOrNull() else cards.firstOrNull { it.name == name }
+    }
 
     private val worker = Executors.newSingleThreadExecutor { Thread(it, "myq-driver") }
     val busy = AtomicBoolean(false)
@@ -54,30 +66,86 @@ class MyqDriver(private val service: AgentService) {
         return fromWindows ?: service.rootInActiveWindow?.takeIf { it.packageName == MYQ }
     }
 
+    private fun idOf(n: AccessibilityNodeInfo) = n.viewIdResourceName?.substringAfter(":id/")
+
+    /**
+     * A door's name, status, and button sit side by side in one card. Reading them
+     * from the same card is what keeps one door's button from being matched to
+     * another door's status.
+     */
+    private fun cardAround(status: AccessibilityNodeInfo): Card {
+        val parent = status.parent
+        var name: String? = null
+        var button: Rect? = null
+        fun look(n: AccessibilityNodeInfo?, depth: Int) {
+            if (n == null || depth > 2) return
+            val id = idOf(n)
+            if (name == null && id == NAME_ID) name = n.text?.toString()?.trim()?.ifEmpty { null }
+            if (button == null && (id == BUTTON_ID || n.contentDescription?.toString() == BUTTON_DESC)) button = Rect().also { n.getBoundsInScreen(it) }
+            for (i in 0 until n.childCount) look(n.getChild(i), depth + 1)
+        }
+        if (parent != null) for (i in 0 until parent.childCount) look(parent.getChild(i), 0)
+        return Card(name, status.text?.toString(), button)
+    }
+
     fun readScreen(): Screen? {
         val root = myqRoot() ?: return null
-        var status: String? = null
-        var button: Rect? = null
+        val cards = mutableListOf<Card>()
         var homeTab: Rect? = null
         val texts = mutableListOf<String>()
         fun walk(n: AccessibilityNodeInfo?, depth: Int) {
             if (n == null || depth > 60) return
-            val id = n.viewIdResourceName
-            if (status == null && id == STATUS_ID) status = n.text?.toString()
-            if (button == null && n.contentDescription?.toString() == BUTTON_DESC) button = Rect().also { n.getBoundsInScreen(it) }
-            if (homeTab == null && id == HOME_TAB_ID) homeTab = Rect().also { n.getBoundsInScreen(it) }
+            val id = idOf(n)
+            if (id == STATUS_ID) cards.add(cardAround(n))
+            if (homeTab == null && n.viewIdResourceName == HOME_TAB_ID) homeTab = Rect().also { n.getBoundsInScreen(it) }
             n.text?.toString()?.takeIf { it.isNotBlank() && texts.size < 40 }?.let { texts.add(it) }
             for (i in 0 until n.childCount) walk(n.getChild(i), depth + 1)
         }
         walk(root, 0)
-        return Screen(status, button, homeTab, texts)
+        return Screen(cards, homeTab, texts)
     }
 
-    private fun snapshotOf(s: Screen?, fault: String? = null): DoorSnapshot {
-        val phase = DoorText.parse(s?.status)
-        val f = fault ?: if (s?.status == null) "myQ did not show the door" else if (phase == DoorPhase.UNKNOWN) "Unrecognized myQ status" else null
-        return DoorSnapshot(phase, s?.status, System.currentTimeMillis(), f)
+    /**
+     * The structure of myQ's screen as indented lines: view id (without the package),
+     * class, content description, whether it is clickable, and short text. For Share
+     * report and for adapting to myQ layouts the author has not seen.
+     */
+    fun outline(maxLines: Int = 120): String {
+        val root = myqRoot() ?: return "(myQ is not on screen)"
+        val out = StringBuilder()
+        var lines = 0
+        fun walk(n: AccessibilityNodeInfo?, depth: Int) {
+            if (n == null || depth > 40 || lines >= maxLines) return
+            val id = n.viewIdResourceName?.substringAfter(":id/")
+            val cls = n.className?.toString()?.substringAfterLast('.')
+            val desc = n.contentDescription?.toString()?.take(40)
+            val text = n.text?.toString()?.take(40)
+            val b = Rect().also { n.getBoundsInScreen(it) }
+            val parts = listOfNotNull(cls, id?.let { "#$it" }, desc?.let { "desc=\"$it\"" }, text?.let { "\"$it\"" },
+                if (n.isClickable) "click" else null, if (n.isScrollable) "scroll" else null, "[${b.left},${b.top},${b.right},${b.bottom}]")
+            out.append("  ".repeat(depth)).append(parts.joinToString(" ")).append('\n')
+            lines++
+            for (i in 0 until n.childCount) walk(n.getChild(i), depth + 1)
+        }
+        walk(root, 0)
+        return out.toString()
     }
+
+    @Volatile private var outlineLogged = false
+
+    /** Hands a reading to the agent: every door card, or the reason no doors could be read. */
+    private fun report(s: Screen?, fault: String? = null) {
+        if (!outlineLogged && s?.status != null) {
+            outlineLogged = true
+            outline().lines().forEach { android.util.Log.d("GarageAgentOutline", it) }
+        }
+        when {
+            fault != null -> Agent.reportFault(fault)
+            s == null || s.cards.isEmpty() -> Agent.reportFault("myQ did not show the door")
+            else -> Agent.reportCards(s.cards)
+        }
+    }
+
 
     /** Passive reading while myQ happens to be on screen. */
     fun passiveRead() {
@@ -85,7 +153,7 @@ class MyqDriver(private val service: AgentService) {
         worker.execute {
             if (busy.get()) return@execute
             val s = readScreen() ?: return@execute
-            if (s.status != null && DoorText.parse(s.status) != DoorPhase.UNKNOWN) Agent.report(snapshotOf(s))
+            if (s.cards.isNotEmpty()) report(s)
         }
     }
 
@@ -170,7 +238,7 @@ class MyqDriver(private val service: AgentService) {
         repeat(4) {
             Thread.sleep(900)
             val next = readScreen()
-            if (next?.status != null && next.status == last?.status) return next to null
+            if (next?.status != null && next.signature == last?.signature) return next to null
             last = next
         }
         return last to null
@@ -218,9 +286,9 @@ class MyqDriver(private val service: AgentService) {
             val wasInFront = true
             try {
                 val (screen, fault) = openSession()
-                Agent.report(snapshotOf(screen, fault))
+                report(screen, fault)
             } catch (e: Exception) {
-                Agent.report(DoorSnapshot(DoorPhase.UNKNOWN, null, System.currentTimeMillis(), "Check failed: ${e.message}"))
+                Agent.reportFault("Check failed: ${e.message}")
             } finally {
                 if (!wasInFront) returnTo(previous)
                 busy.set(false)
@@ -229,23 +297,23 @@ class MyqDriver(private val service: AgentService) {
     }
 
     /** Completes true once myQ has accepted the command (or nothing needed doing), false if it could not. */
-    fun command(desired: DoorPhase): CompletableFuture<Boolean> {
+    fun command(slot: Int, name: String?, desired: DoorPhase): CompletableFuture<Boolean> {
         val accepted = CompletableFuture<Boolean>()
         worker.execute {
             busy.set(true)
             val previous = service.lastExternalPackage
             val wasInFront = hiddenDisplayId() != null || myqInFront()
             if (hiddenDisplayId() == null) Agent.log("Hidden display is down; using the real screen for this command")
-            Agent.commandActive = true
+            Agent.commandActive = slot
             try {
-                runCommand(desired, accepted)
+                runCommand(slot, name, desired, accepted)
             } catch (e: Exception) {
                 Agent.log("Command failed: ${e.javaClass.simpleName} ${e.message}")
-                Agent.report(DoorSnapshot(DoorPhase.UNKNOWN, null, System.currentTimeMillis(), "Command failed"))
+                Agent.reportFault("Command failed")
             } finally {
-                Agent.commandActive = false
+                Agent.commandActive = null
                 Agent.inFlight = null
-                Agent.report(Agent.snapshot)
+                readScreen()?.takeIf { it.cards.isNotEmpty() }?.let { report(it) }
                 accepted.complete(false)
                 if (!wasInFront) returnTo(previous)
                 busy.set(false)
@@ -254,16 +322,20 @@ class MyqDriver(private val service: AgentService) {
         return accepted
     }
 
-    private fun runCommand(desired: DoorPhase, accepted: CompletableFuture<Boolean>) {
+    private fun runCommand(slot: Int, name: String?, desired: DoorPhase, accepted: CompletableFuture<Boolean>) {
+        val which = name?.let { " \"$it\"" } ?: ""
         val (first, fault) = openSession()
         if (fault != null) {
-            Agent.report(snapshotOf(first, fault))
+            report(first, fault)
             return
         }
         var screen = first!!
-        var phase = DoorText.parse(screen.status)
-        Agent.report(snapshotOf(screen))
-
+        report(screen)
+        var card = screen.card(name) ?: run {
+            Agent.log(if (name == null) "Not tapping: myQ shows ${screen.cards.size} doors" else "Not tapping: myQ does not show$which")
+            return
+        }
+        var phase = DoorText.parse(card.status)
         if (phase.isMoving) {
             // A door already in motion: accept now, act once it settles.
             accepted.complete(true)
@@ -271,25 +343,26 @@ class MyqDriver(private val service: AgentService) {
             while (phase.isMoving && System.currentTimeMillis() < until) {
                 Thread.sleep(1000)
                 screen = readScreen() ?: break
-                phase = DoorText.parse(screen.status)
-                Agent.report(snapshotOf(screen))
+                card = screen.card(name) ?: break
+                phase = DoorText.parse(card.status)
+                report(screen)
             }
         }
         if (phase == desired) {
-            Agent.log("Door already ${desired.name.lowercase()}; nothing to do")
-            Agent.setTarget(if (desired == DoorPhase.OPEN) 0 else 1)
+            Agent.log("Door$which already ${desired.name.lowercase()}; nothing to do")
+            Agent.setTarget(slot, if (desired == DoorPhase.OPEN) 0 else 1)
             accepted.complete(true)
             return
         }
         if (phase != DoorPhase.OPEN && phase != DoorPhase.CLOSED) {
-            Agent.log("Not tapping: door state is $phase (\"${screen.status}\")")
+            Agent.log("Not tapping: door$which state is $phase (\"${card.status}\")")
             return
         }
-        val button = screen.button ?: run {
-            Agent.log("Not tapping: door button not found")
+        val button = card.button ?: run {
+            Agent.log("Not tapping: the button for$which is not on myQ's card")
             return
         }
-        Agent.log("Tapping myQ door button to ${if (desired == DoorPhase.OPEN) "open" else "close"}")
+        Agent.log("Tapping myQ door button$which to ${if (desired == DoorPhase.OPEN) "open" else "close"}")
         if (!tap(button.centerX(), button.centerY())) {
             Agent.log("Tap gesture was not delivered")
             return
@@ -298,15 +371,15 @@ class MyqDriver(private val service: AgentService) {
         var ok = false
         while (System.currentTimeMillis() < acceptDeadline) {
             Thread.sleep(300)
-            val s = readScreen() ?: continue
-            val p = DoorText.parse(s.status)
-            if (s.button == null || p.isMoving || p == desired) { ok = true; break }
+            val c = readScreen()?.card(name) ?: continue
+            val p = DoorText.parse(c.status)
+            if (c.button == null || p.isMoving || p == desired) { ok = true; break }
         }
         if (!ok) {
             Agent.log("myQ did not accept the tap")
             return
         }
-        Agent.setTarget(if (desired == DoorPhase.OPEN) 0 else 1)
+        Agent.setTarget(slot, if (desired == DoorPhase.OPEN) 0 else 1)
         accepted.complete(true)
 
         val timeout = if (desired == DoorPhase.OPEN) OPEN_TIMEOUT_MS else CLOSE_TIMEOUT_MS
@@ -315,19 +388,20 @@ class MyqDriver(private val service: AgentService) {
         while (System.currentTimeMillis() < until) {
             Thread.sleep(1000)
             val s = readScreen() ?: continue
-            val p = DoorText.parse(s.status)
+            val c = s.card(name) ?: continue
+            val p = DoorText.parse(c.status)
             if (p == DoorPhase.CLOSING) sawClosing = true
-            if (p != DoorPhase.UNKNOWN) Agent.report(snapshotOf(s))
+            if (p != DoorPhase.UNKNOWN) report(s)
             if (p == desired) {
-                Agent.log("Door reached ${desired.name.lowercase()}")
-                if (desired == DoorPhase.CLOSED) Agent.setObstruction(false)
+                Agent.log("Door$which reached ${desired.name.lowercase()}")
+                if (desired == DoorPhase.CLOSED) Agent.setObstruction(slot, false)
                 return
             }
         }
         val final = readScreen()
-        val p = DoorText.parse(final?.status)
-        Agent.log("Door did not reach ${desired.name.lowercase()} in ${timeout / 1000}s; myQ says \"${final?.status}\"")
-        if (desired == DoorPhase.CLOSED && sawClosing && p == DoorPhase.OPEN) Agent.setObstruction(true)
-        Agent.report(snapshotOf(final, if (p == DoorPhase.UNKNOWN) "Door did not finish moving" else null))
+        val p = DoorText.parse(final?.card(name)?.status)
+        Agent.log("Door$which did not reach ${desired.name.lowercase()} in ${timeout / 1000}s; myQ says \"${final?.card(name)?.status}\"")
+        if (desired == DoorPhase.CLOSED && sawClosing && p == DoorPhase.OPEN) Agent.setObstruction(slot, true)
+        if (final != null && p != DoorPhase.UNKNOWN) report(final) else Agent.reportFault("Door did not finish moving", slot)
     }
 }

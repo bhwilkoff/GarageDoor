@@ -38,6 +38,16 @@ iPhone lock screen ──> Home hub (Apple TV / HomePod) ──> Android phone
   over edwards25519 the way BoringSSL does it, then AES-128-GCM. That
   lets the agent pair its own key from the code you type, grant its own
   permissions, and restart the hidden screen after a reboot.
+- **It handles more than one door, by name.** Each door on myQ's home
+  screen is a card with its name, status, and button side by side, and
+  the agent reads all three from the same card. Doors are matched to Home
+  by their myQ name, never their position. Each door is its own Garage
+  Door Opener service on the one accessory: the first keeps identifiers
+  10 to 15, door *n* uses *n*·100 + 10 to 15, and slots are never reused.
+  Each service carries a ConfiguredName, because Home labels a
+  multi-service accessory's doors by that, not by Name. Two doors with
+  the same name, or a card it can't take apart cleanly, and it refuses to
+  press anything.
 - **It heals itself.** A sticky foreground service and a boot receiver
   keep it running. A watchdog re-enables the accessibility service when
   Android drops it, and the agent restarts `DisplayHost` through its own
@@ -87,6 +97,22 @@ spelling, version numbers, agent instructions). From the top folder:
 python3 tools/test_us_english.py
 python3 tools/test_version_contract.py
 python3 tools/test_agent_files.py
+```
+
+**Trying two doors without a second door.** A pretend door that opens
+and closes in six seconds, touching nothing real. Only the shell can send
+this (it requires the DUMP permission):
+
+```
+adb shell am broadcast -n org.humanshaped.garageagent/.TestDoorReceiver --ez on true
+adb shell am broadcast -n org.humanshaped.garageagent/.TestDoorReceiver --ez on false
+```
+
+The two-door protocol test (a throwaway accessory on port 51901, in its
+own process, so the live agent is untouched):
+
+```
+adb shell CLASSPATH=<app.apk>:<test.apk> app_process / org.humanshaped.garageagent.MultiDoorCli
 ```
 
 ## Releasing

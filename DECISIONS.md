@@ -210,3 +210,33 @@ registered under the owner's already verified identity.
   (certificate SHA-256 pinned in the workflow).
 - The setup screen is the help desk: each check says what it is, why it
   matters, and offers the one fix; Share report is what an issue asks for.
+
+## 008: More than one door: matched by myQ name, one service per door on the same accessory
+
+*Date: 2026-11-20*
+
+Every door on myQ's home screen becomes its own Garage Door Opener
+service on the one HomeKit accessory. A door is identified by its name in
+myQ, read from the same card as its status and button. The first door
+keeps identifiers 10 to 15; door n uses n*100 + 10 to 15. Each service
+has a writable ConfiguredName.
+
+**Why**: matching by position would let myQ reordering its list move the
+wrong door. Services on the existing accessory (rather than turning it
+into a bridge) keep the owner's first door, its lock-screen control, and
+any automations exactly as they were. Home ignores Name on the services
+of a multi-service accessory and labels them all with the accessory's
+name, so ConfiguredName is what makes the doors distinguishable
+(observed on the owner's iPhone, 2026-11-20).
+
+**How to apply**:
+- Slots are remembered by name and never reused (`nextSlot`), so a new
+  door can't inherit a removed door's name or room in Home.
+- Duplicate names, or a card without its name and button beside the
+  status, mean refusing every command, with the reason on screen.
+- A door myQ stops showing reports No Response; after ten minutes the
+  app offers to remove it. The first door is never removed.
+- The pretend door lives in slot 9, apart from real slots, and is
+  switched only from adb (`TestDoorReceiver`, DUMP permission).
+- About three cards fit on myQ's home screen; myQ leaves off-screen
+  cards out of the accessibility tree.

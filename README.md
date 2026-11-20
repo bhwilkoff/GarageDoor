@@ -31,7 +31,8 @@ No new hardware. No subscription. No computer. No typing commands.
   in at home, on your Wi-Fi. Its screen can stay off and locked. You can
   even keep using it for other things; the app never takes over its
   screen.
-- **The myQ app** on that phone, signed in to your account.
+- **The myQ app** on that phone, signed in to your account. One door or
+  several; each shows up in Apple Home as its own door.
 - **An iPhone** with iOS 18 or newer, for the button on the lock screen.
 - **An Apple TV or HomePod** at home, if you want the button to work
   when you are away (Apple calls this a Home hub).
@@ -125,6 +126,26 @@ their own lock screen. Nothing changes on the Android phone.
 
 </details>
 
+## More than one door
+
+Garage Agent handles every door on myQ's home screen. Each one shows up in
+Apple Home as its own door, named the way it is named in myQ.
+
+1. **Give each door its own name in myQ.** That name is how Garage Agent
+   tells them apart. It never goes by where a door sits on myQ's screen,
+   so the right door always moves.
+2. **Add the door in myQ** (or rename it there). Within a minute or so, it
+   appears in the Home app on its own. There is nothing to set up again.
+3. **In the Home app, the doors may share one tile.** Long-press it, tap
+   the settings button, and choose **Show as Separate Tiles**. Rename any
+   door there if you like; Garage Agent remembers the name you give it.
+4. **Put each door on your lock screen** the same way as the first: Home,
+   then Accessory, then pick the door.
+
+If you remove a door from myQ, Garage Agent notices. After ten minutes it
+offers to remove that door from Apple Home too (it is in the Doors step
+of the checklist).
+
 ## Keeping it working
 
 - **After the Android phone restarts, unlock it once.** Android keeps
@@ -150,6 +171,8 @@ next thing to fix, and most things fix themselves within a minute or two.
 | **Garage Door** isn't in the list under More options | The iPhone is on a different Wi-Fi (or a guest network), or the door is already in a Home | Put both phones on the same Wi-Fi. If Garage Agent shows no code, it is already paired: long-press **Reset Apple Home** in Garage Agent and try again |
 | Home says the code is wrong | A typo, or an earlier attempt got stuck | Check the code and try again. Still stuck: long-press **Reset Apple Home** in Garage Agent |
 | An old **Garage Door** says No Response next to a working one | Left over from reinstalling | Long-press it, then **Remove Accessory** |
+| Garage Agent says two doors share a name | Garage Agent can't tell them apart, so it won't press either one | Rename one of them in myQ |
+| A door I added in myQ doesn't show up in Home | It isn't on myQ's home screen, or it is in a different myQ home | Open myQ on the Android phone and check that the door is listed on the same home as the others |
 
 </details>
 
@@ -178,7 +201,9 @@ for you.)
 
 - **I have tested it on one phone,** a Pixel 8a. Other Android phones
   should work. I just haven't seen it yet.
-- **One door per myQ account,** and the myQ app needs to be in English.
+- **Up to three doors,** all in the same myQ home, and the myQ app needs
+  to be in English. (Three is how many fit on myQ's screen. I have tested
+  one real door plus a pretend second door, not two real ones yet.)
 - **It is not in the Play Store.** Google doesn't allow apps that operate
   other apps this way, so it lives here, signed by me, and free.
 - **It asks for a lot of trust, so here is exactly what it does.** To

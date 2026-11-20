@@ -7,8 +7,9 @@
 - **Active milestone**: M2, survive reboots without a computer.
 - **Last session**: 2026-11-20 (see log).
 - **Next actions**:
-  1. Watch for Google's email confirming the package registration.
-  2. Someone installs from the README on a phone other than the Pixel.
+  1. Owner adds the second door in myQ; confirm it appears in Home under
+     its myQ name and moves only itself.
+  2. Watch for Google's email confirming the package registration.
 - **Open questions**:
   1. Family members: Apple Home sharing, when wanted.
 
@@ -57,4 +58,7 @@
 - **Then**: owner re-added the door; v1.1 shipped (update notices,
   calmer screen, QR download). Installing 1.1 over 1.0 kept the Home
   pairing, permissions, and the agent's adb key (verified on the Pixel).
-- **Left**: Pixel on 1.1, door closed, everything working.
+- **Then**: multi-door support (Decision 008), verified with a pretend
+  second door from the owner's iPhone; ConfiguredName fixed identical
+  labels in Home. 1.2 on the Pixel, test door off.
+- **Left**: Pixel on 1.2, one real door, closed.
