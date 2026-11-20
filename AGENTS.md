@@ -1,4 +1,4 @@
-# [APP NAME]: Agent Project Context
+# GarageDoor: Agent Project Context
 
 A small personal utility: open, close, and see the state of a myQ
 (Chamberlain) garage door from the iPhone lock screen. It is a
@@ -6,10 +6,9 @@ lightweight copy of UniversalAppTemplate, kept to the skills and docs
 this job needs. The template stays the home of the full method; pull a
 skill from it when a need arrives that this copy does not cover.
 
-**First session**: SCRATCHPAD.md is NOT STARTED. Walk the owner through
-the open question there (how to reach the door at all) before writing
-app code. The owner writes why this exists and who it is for; ask and
-record their words, never fill them in yourself.
+**Route**: the official myQ Android app on an always-on Pixel, driven
+by our own on-device agent that appears in Apple Home as a garage door
+(Decision 004). Constraint: $0, no new hardware, no paid services.
 
 ## Why we build
 
@@ -32,6 +31,15 @@ three moves: **write** (values, features, and feedback live here),
 **play** (the owner uses what you built on their real phone; you are
 never the tester), **publish** (it goes onto the owner's phone and into
 daily use, and that use drives the next round).
+
+---
+
+## Why and who (the owner's words)
+
+> "It is just for me. I'd love for the other members of my family to be
+> able to use it if possible, but that isn't a requirement right now. I
+> just need a reliable way to open and close my garage door from my lock
+> screen."
 
 ---
 

@@ -1,0 +1,59 @@
+# Releasing Garage Agent
+
+Releases are signed APKs on GitHub Releases, built by
+`.github/workflows/android-release.yml` when a version tag is pushed. The
+app is not on the Play Store, on purpose: Play's accessibility policy
+does not allow automation tools, and a rejection there puts the whole
+developer account at risk (Decision 007).
+
+## The signing key
+
+| What | Where |
+|---|---|
+| Keystore (PKCS12, alias `garage-agent`) | `~/.config/humanshaped/garage-agent/release.p12` on the owner's Mac |
+| Keystore password | macOS Keychain, service `humanshaped-garage-agent-signing` |
+| CI copies | GitHub secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` |
+| Certificate SHA-256 | `e8ff0012f92ad5bb7b70ddfc4d28470ca284e4c00bfca8b0a199c94771386464` |
+
+**Back up the keystore file and its password together** in a password
+manager. If the key is lost, no one can install an update: everyone would
+have to uninstall, reinstall, and add the door to Apple Home again. The
+GitHub secrets cannot be read back out, so they are not a backup.
+
+To read the password: `security find-generic-password -s humanshaped-garage-agent-signing -w`.
+
+## Cutting a release
+
+1. Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in
+   `AppVersion.xcconfig`, and `versionCode` in `app/build.gradle.kts`
+   (it must go up every release, or Android refuses the update).
+2. Optional: `./release.sh` builds the same signed APK locally into
+   `build/release/` to try on a phone first.
+3. Commit, then tag and push:
+
+   ```
+   git tag v1.1 && git push origin main v1.1
+   ```
+
+   The tag must be `v` plus `MARKETING_VERSION`, or the workflow stops.
+4. The workflow builds, refuses to publish anything not signed with the
+   release key, and creates the release with the APK and its SHA-256.
+
+Running the workflow by hand (Actions > Android release > Run workflow)
+builds and checks the APK and attaches it to the run, without publishing.
+
+## Android developer verification
+
+From 2027 in most countries (September 30, 2026 in Brazil, Indonesia,
+Singapore, and Thailand), certified Android phones install sideloaded
+apps only from registered developers. The owner's identity is already
+verified through Play Console. What remains is registering this app:
+
+1. Play Console > **Android developer verification** (or the Android
+   Developer Console's **Packages** page): register the package name
+   `org.humanshaped.garageagent` with the certificate SHA-256 above.
+2. If asked to prove ownership, the console gives a small file to put in
+   the APK's assets. Add it under `app/src/main/assets/`, run
+   `./release.sh`, and upload `build/release/garage-agent-<version>.apk`.
+
+Installs through adb (`setup.sh`) are not affected.

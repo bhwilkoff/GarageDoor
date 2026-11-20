@@ -1,0 +1,78 @@
+name: Android release
+
+# Push a tag like v1.0 (matching MARKETING_VERSION in AppVersion.xcconfig) to
+# publish a GitHub Release with the signed APK. Run it by hand to build and
+# check the APK without publishing. See android-agent/RELEASING.md.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  # The release key's certificate fingerprint. A build signed with anything else is not published.
+  EXPECTED_CERT_SHA256: e8ff0012f92ad5bb7b70ddfc4d28470ca284e4c00bfca8b0a199c94771386464
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install SDK packages
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
+
+      - name: Check the version
+        id: version
+        run: |
+          version=$(sed -n 's/^MARKETING_VERSION *= *//p' ../AppVersion.xcconfig)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v$version" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match MARKETING_VERSION $version"; exit 1
+          fi
+
+      - name: Build the signed APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          [ -n "$KEYSTORE_BASE64" ] || { echo "::error::Secret ANDROID_KEYSTORE_BASE64 is not set"; exit 1; }
+          export SIGNING_STORE_FILE="$RUNNER_TEMP/release.p12"
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$SIGNING_STORE_FILE"
+          ./gradlew --no-daemon -q assembleRelease
+          rm -f "$SIGNING_STORE_FILE"
+
+      - name: Verify the signature
+        run: |
+          apk=app/build/outputs/apk/release/app-release.apk
+          certs=$("$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs "$apk")
+          echo "$certs" | grep -E "DN|SHA-256"
+          echo "$certs" | grep -q "SHA-256 digest: $EXPECTED_CERT_SHA256" || { echo "::error::APK is not signed with the release key"; exit 1; }
+          mkdir -p dist
+          name="garage-agent-${{ steps.version.outputs.version }}.apk"
+          cp "$apk" "dist/$name"
+          (cd dist && sha256sum "$name" > "$name.sha256")
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: garage-agent-apk
+          path: android-agent/dist/*
+
+      - name: Publish the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Garage Agent ${{ steps.version.outputs.version }}" \
+            --notes "Install: download garage-agent-${{ steps.version.outputs.version }}.apk on the Android phone, open it, and follow the steps in the app. Full guide: https://github.com/${GITHUB_REPOSITORY}/tree/main/android-agent#readme"

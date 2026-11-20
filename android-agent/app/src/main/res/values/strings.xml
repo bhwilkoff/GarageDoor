@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Garage Agent</string>
+    <string name="a11y_desc">Reads the garage door state in myQ and taps the door button when Apple Home asks.</string>
+</resources>

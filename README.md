@@ -1,7 +1,11 @@
-# [APP NAME]
+# GarageDoor
 
 A personal control for a myQ garage door, reachable from the iPhone lock
 screen.
+
+**To set it up yourself**, with a spare Android phone, the myQ app, and
+Apple Home: see [`android-agent/README.md`](android-agent/README.md).
+One script does the setup, and after that no computer is needed.
 
 Made from [UniversalAppTemplate](https://github.com/bhwilkoff/UniversalAppTemplate),
 cut down to what this job needs: a web shell, an iOS shell, and the

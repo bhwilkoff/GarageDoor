@@ -1,46 +1,21 @@
-# [APP NAME]: Scratchpad
+# GarageDoor: Scratchpad
 
 ## Current state
 
-- **Status**: NOT STARTED. A lightweight copy of UniversalAppTemplate,
-  made 2026-11-19.
-- **Active milestone**: M0, choose how the app reaches the door.
-- **Last session**: none yet
+- **Status**: working from the owner's lock screen (first real open
+  2026-11-19 16:20, via the hub, myQ on the hidden display).
+- **Active milestone**: M2, survive reboots without a computer.
+- **Last session**: 2026-11-20 (see log).
 - **Next actions**:
-  1. The owner says, in their own words, why this exists and who uses it
-     (just them? family members' phones too?). Record it in AGENTS.md.
-  2. Settle the route to the door (open question 1) and log it in
-     DECISIONS.md.
-  3. Name the app and run `tools/set_app_identity.py`.
-  4. Prototype the smallest end-to-end path: a read-only door status,
-     then one tap that toggles the door, fired from a Shortcut before any
-     widget work.
-  5. Then the lock-screen Control (WidgetKit `ControlWidget`, iOS 18+)
-     and a lock-screen status widget.
+  1. Owner: back up the release keystore and its password (RELEASING.md).
+  2. Owner: OK to commit, push, and tag v1.0 (first CI release); repo is
+     private, so make it public when ready to share.
+  3. Owner: register `org.humanshaped.garageagent` in Play Console's
+     Android developer verification (cert SHA-256 in RELEASING.md).
+  4. Move the owner's Pixel from the old `home.garagedoor.agent` dev build
+     to the release (uninstall old, re-add in Apple Home, pair in app).
 - **Open questions**:
-  1. **How does the app reach the door?** myQ publishes no API. Routes
-     found so far (2026-11-19, a quick search, not yet verified in depth):
-     - **IFTTT's myQ service.** IFTTT lists applets that fire a myQ
-       action when an iOS Shortcut runs. Official partner path, so the
-       least likely to be blocked, but likely needs a paid IFTTT plan,
-       and it may control the door without reporting its state back.
-     - **myQ's own app.** No widget for one-tap door control that I could
-       find. Shortcuts can open the app but not press the button without
-       an accessibility workaround that needs the phone unlocked.
-     - **Unofficial myQ cloud API** (the reverse-engineered one older
-       Home Assistant and Homebridge plugins used). Chamberlain blocked
-       these in late 2023; presumed revocable at any time (Decision 002).
-     - **Local hardware on the opener** (for example a ratgdo board
-       wired to the opener's terminals, which can show up in Apple Home
-       or speak MQTT/HTTP on the home network). Bypasses myQ's cloud
-       entirely; costs a one-time hardware purchase; not verified for
-       this owner's opener model. If it lands in Apple Home, iOS already
-       gives a lock-screen control with no app at all, and an app only
-       earns its place if it adds something.
-     The owner's opener model and whether they will buy hardware or pay
-     a subscription decide this.
-  2. Does anyone besides the owner need the control?
-  3. Is a web surface needed at all, or is this iOS only?
+  1. Family members: Apple Home sharing, when wanted.
 
 ---
 
@@ -56,4 +31,29 @@
 
 ## Session log
 
-(none yet)
+### 2026-11-19: hidden display, timed writes, first lock-screen open
+- **Found**: owner paired the iPhone; lock-screen tap did nothing; owner
+  rejected the 15-minute screen grabs.
+- **Did**: HAP request logging showed the hub's `PUT /prepare` getting
+  404; added timed writes and the door opened from the lock screen.
+  Moved myQ to a hidden virtual display (DisplayHost); removed all
+  real-screen checks; repeat commands acknowledged; wrote AdbSelf for
+  self-restart. Pairing its key was stopped by the safety check: owner's
+  call.
+- **Left**: DisplayHost running (started from the Mac), door OPEN at
+  16:22 from the owner's test. Not committed.
+
+### 2026-11-20: the agent restarts its own hidden display
+- **Found**: agent key unpaired (the first pairing went to the Mac key).
+- **Did**: paired the agent key via `HOME=`; first self-restarts died
+  with an empty log (agent hung up before the JVM started); the start
+  command now waits for `DISPLAY`. Killed DisplayHost: the agent restored
+  it in 3 s and read the door. Deleted the Mac copies of the key.
+- **Then**: reboot test passed (working 53 s after unlock); owner
+  opened and closed from the Home control. Wrote `android-agent/setup.sh`
+  (rerun on the Pixel: pass) and `android-agent/README.md` for others.
+- **Then**: on-device pairing (AdbPair: SPAKE2 matched first try),
+  setup checklist with fixes and Share report, icon; package renamed to
+  `org.humanshaped.garageagent`; release key (Keychain), CI workflow,
+  GitHub secrets set, local signed release verified (Decision 007).
+- **Left**: Pixel still runs the old dev package; nothing committed.
