@@ -78,6 +78,9 @@ class MainActivity : Activity() {
     private lateinit var col: LinearLayout
     private lateinit var door: TextView
     private lateinit var next: TextView
+    private lateinit var intro: TextView
+    private lateinit var update: LinearLayout
+    private lateinit var updateText: TextView
     private lateinit var code: TextView
     private val rows = mutableListOf<Row>()
     private lateinit var logView: TextView
@@ -104,7 +107,20 @@ class MainActivity : Activity() {
 
         col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(pad, pad, pad, pad) }
         door = text(28f, bold = true).also { col.addView(it) }
+        intro = text(16f, secondary = true).apply {
+            text = "This phone presses the button in myQ whenever Apple Home asks it to. Set it up once, and it runs on its own after that."
+        }.also { col.addView(it) }
         next = text(17f).also { col.addView(it) }
+        update = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, pad / 2, 0, pad / 2); visibility = View.GONE }
+        updateText = text(16f, bold = true).also { update.addView(it) }
+        update.addView(text(14f, secondary = true).apply {
+            text = "Download it, open it, and tap Update. Your Apple Home pairing and settings stay just as they are."
+        })
+        update.addView(Button(this).apply {
+            text = "Download update"
+            setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(UpdateCheck.DOWNLOAD_URL))) }
+        })
+        col.addView(update)
         code = text(34f, bold = true).apply { typeface = Typeface.MONOSPACE }.also { col.addView(it) }
         repeat(7) { rows.add(Row(col)) }
 
@@ -117,9 +133,18 @@ class MainActivity : Activity() {
         })
         col.addView(tools)
         col.addView(text(14f, secondary = true).apply {
-            text = "Stuck? Share report sends a plain-text summary (no passwords or setup code) you can paste into a GitHub issue."
+            text = "Stuck? Share report writes a plain-text summary of everything above (no passwords, no setup code). Paste it into a new issue on the Garage Door page on GitHub, and tell me what happened."
         })
-        logView = text(11f).apply { typeface = Typeface.MONOSPACE }.also { col.addView(it) }
+        logView = text(11f).apply { typeface = Typeface.MONOSPACE; visibility = View.GONE }
+        col.addView(Button(this).apply {
+            text = "Show details"
+            setOnClickListener {
+                val show = logView.visibility != View.VISIBLE
+                logView.visibility = if (show) View.VISIBLE else View.GONE
+                text = if (show) "Hide details" else "Show details"
+            }
+        })
+        col.addView(logView)
 
         val scroll = ScrollView(this).apply { addView(col) }
         scroll.setOnApplyWindowInsetsListener { v, insets ->
@@ -130,7 +155,11 @@ class MainActivity : Activity() {
         setContentView(scroll)
     }
 
-    override fun onResume() { super.onResume(); handler.post(tick) }
+    override fun onResume() {
+        super.onResume()
+        handler.post(tick)
+        UpdateCheck.maybeCheck(packageManager.getPackageInfo(packageName, 0).versionName ?: "0")
+    }
     override fun onPause() { handler.removeCallbacks(tick); super.onPause() }
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_LONG).show()
@@ -217,7 +246,7 @@ class MainActivity : Activity() {
                     !AdbSelf.wirelessDebuggingOn(this) -> "Open Developer options > Wireless debugging and turn it on. Choose \"Always allow on this network\"."
                     else -> "On."
                 },
-                if (!devOptionsOn()) "Open About phone" else "Open Developer options",
+                if (AdbSelf.wirelessDebuggingOn(this) || (paired && hasSecureSettings())) null else if (!devOptionsOn()) "Open About phone" else "Open Developer options",
             ) {
                 if (!devOptionsOn()) startActivity(Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)) else openDevOptions()
             },
@@ -231,7 +260,7 @@ class MainActivity : Activity() {
                     paired -> "Paired."
                     else -> "Tap Pair, then in Wireless debugging tap \"Pair device with pairing code\" and type the code into the notification."
                 },
-                if (pairing == PairingFlow.Step.WAITING_FOR_DIALOG || pairing == PairingFlow.Step.WAITING_FOR_CODE) "Cancel pairing" else if (paired && !shellBroken) "Pair again" else "Pair",
+                if (pairing == PairingFlow.Step.WAITING_FOR_DIALOG || pairing == PairingFlow.Step.WAITING_FOR_CODE) "Cancel pairing" else if (paired && !shellBroken) null else "Pair",
             ) {
                 if (pairing == PairingFlow.Step.WAITING_FOR_DIALOG || pairing == PairingFlow.Step.WAITING_FOR_CODE) PairingFlow.cancel(this) else startPairing()
             },
@@ -265,7 +294,7 @@ class MainActivity : Activity() {
                 when {
                     s.fault != null -> "Problem: ${s.fault}"
                     s.seenAt == 0L -> "No reading yet."
-                    else -> "Last reading: ${phaseLabel(s.phase)}, ${DateUtils.getRelativeTimeSpanString(s.seenAt)}."
+                    else -> "Last reading: ${phaseLabel(s.phase)}, ${ago(s.seenAt)}."
                 },
                 "Check now",
             ) { Agent.requestRefresh("checked from the agent screen") },
@@ -274,13 +303,16 @@ class MainActivity : Activity() {
                 "Add the door in the Home app on your iPhone, then add it to Control Center or the lock screen. Remote use needs a Home hub (Apple TV or HomePod).",
                 id.isPaired,
                 if (id.isPaired) {
-                    "Paired with ${id.pairings.size} device${if (id.pairings.size == 1) "" else "s"}; ${Agent.controllerSessions()} connected now."
+                    "Your Home is connected (${id.pairings.size} device${if (id.pairings.size == 1) "" else "s"})."
                 } else {
                     "In the Home app: + > Add Accessory > More options > ${Agent.ACCESSORY_NAME} > Add Anyway, then enter the code above."
                 },
             ),
         )
     }
+
+    private fun ago(t: Long): String =
+        if (System.currentTimeMillis() - t < 60_000L) "just now" else DateUtils.getRelativeTimeSpanString(t).toString()
 
     private fun phaseLabel(p: DoorPhase) = when (p) {
         DoorPhase.OPEN -> "open"; DoorPhase.CLOSED -> "closed"; DoorPhase.OPENING -> "opening"
@@ -292,7 +324,7 @@ class MainActivity : Activity() {
         val list = checks()
         val todo = list.count { !it.ok }
         door.text = when {
-            s.seenAt == 0L -> if (todo > 0) "Setup: $todo step${if (todo == 1) "" else "s"} left" else "Waiting for the first reading"
+            s.seenAt == 0L -> if (todo > 0) "Let's set up your garage door" else "Waiting for the first reading"
             else -> "Door ${phaseLabel(s.phase)}" + if (todo > 0) " · $todo to fix" else ""
         }
         val first = list.firstOrNull { !it.ok }
@@ -303,6 +335,10 @@ class MainActivity : Activity() {
         next.setTextColor(if (first == null) okColor else primary)
         code.text = if (Agent.identity.isPaired) "" else Agent.identity.setupCode
         code.visibility = if (Agent.identity.isPaired) View.GONE else View.VISIBLE
+        intro.visibility = if (todo > 0) View.VISIBLE else View.GONE
+        val newer = UpdateCheck.newer
+        update.visibility = if (newer != null) View.VISIBLE else View.GONE
+        if (newer != null) updateText.text = "Version $newer of Garage Agent is ready."
         list.forEachIndexed { i, c -> rows[i].show(c) }
         logView.text = Agent.recentLog(40).reversed().joinToString("\n")
     }

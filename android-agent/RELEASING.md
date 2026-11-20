@@ -34,17 +34,21 @@ To read the password: `security find-generic-password -s humanshaped-garage-agen
 1. Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in
    `AppVersion.xcconfig`, and `versionCode` in `app/build.gradle.kts`
    (it must go up every release, or Android refuses the update).
-2. Optional: `./release.sh` builds the same signed APK locally into
+2. Write `release-notes/<version>.md`: what changed, in plain words, and
+   how to install. The release page shows it, and the workflow stops if
+   it is missing.
+3. Optional: `./release.sh` builds the same signed APK locally into
    `build/release/` to try on a phone first.
-3. Commit, then tag and push:
+4. Commit, then tag and push:
 
    ```
    git tag v1.1 && git push origin main v1.1
    ```
 
    The tag must be `v` plus `MARKETING_VERSION`, or the workflow stops.
-4. The workflow builds, refuses to publish anything not signed with the
-   release key, and creates the release with the APK and its SHA-256.
+5. The workflow builds, refuses to publish anything not signed with the
+   release key, and creates the release with the APK (also as `garage-agent.apk`, which
+   is what the download link and QR code point to) and its SHA-256.
 
 Running the workflow by hand (Actions > Android release > Run workflow)
 builds and checks the APK and attaches it to the run, without publishing.

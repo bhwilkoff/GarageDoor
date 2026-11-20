@@ -19,6 +19,12 @@ tells your iPhone what the door actually did.
 
 No new hardware. No subscription. No computer. No typing commands.
 
+<p align="center">
+  <img src="docs/images/garage-agent-app-top.png" width="300" alt="Garage Agent on the Android phone: the door is closed, everything is working, and each step of the checklist says Done">
+  &nbsp;
+  <img src="docs/images/garage-agent-app-mid.png" width="300" alt="The rest of the checklist: the private myQ screen is running, the last door reading was just now, and Apple Home is connected">
+</p>
+
 ## What you need
 
 - **An extra Android phone** (Android 13 or newer) that can stay plugged
@@ -36,12 +42,16 @@ phones.
 
 **On the Android phone**
 
-1. **Download Garage Agent.** On the Android phone, open the
-   [latest release](https://github.com/bhwilkoff/GarageDoor/releases/latest)
-   and tap `garage-agent-1.0.apk` (the version number may be higher).
-   Android will ask whether your browser may install apps; allow it. That
-   is how apps from outside the Play Store get installed. Then tap
-   **Install**.
+1. **Download Garage Agent.** On the Android phone, tap
+   [**Download Garage Agent**](https://github.com/bhwilkoff/GarageDoor/releases/latest/download/garage-agent.apk).
+   Reading this on a computer? Point the Android phone's camera at this
+   code instead:
+
+   <img src="docs/images/download-qr.png" width="160" alt="QR code that downloads Garage Agent">
+
+   Open the download. Android will ask whether your browser may install
+   apps; allow it. That is how apps from outside the Play Store get
+   installed. Then tap **Install**.
 2. **Open Garage Agent and work down the checklist.** Every item says
    what it is, why it matters, and has one button that does the work.
    Keep going until every item says **Done**. Two of them need a little
@@ -148,11 +158,20 @@ setup code. Paste it into a
 [new issue](https://github.com/bhwilkoff/GarageDoor/issues/new?template=problem.md)
 and tell me what happened.
 
-**Updates.** Garage Agent does not update itself. Check the
-[releases page](https://github.com/bhwilkoff/GarageDoor/releases) now and
-then, or install the free [Obtainium](https://github.com/ImranR98/Obtainium)
-app and give it this page's address; it will tell you when there is a new
-version.
+## Updates
+
+When there is a new version, Garage Agent tells you at the top of its
+screen, with a **Download update** button. Open the download and tap
+**Update**. It installs right over the old one, and your Apple Home
+pairing and settings stay just as they are.
+
+You set it up once.
+
+(To know about updates, the app asks GitHub for the latest version number
+when you open it. Nothing about you or your door goes with that question.
+If you would rather have updates arrive on their own, the free
+[Obtainium](https://github.com/ImranR98/Obtainium) app can watch this page
+for you.)
 
 ## A few honest limits
 

@@ -61,7 +61,9 @@ jobs:
           mkdir -p dist
           name="garage-agent-${{ steps.version.outputs.version }}.apk"
           cp "$apk" "dist/$name"
-          (cd dist && sha256sum "$name" > "$name.sha256")
+          # A copy without the version in its name, so .../releases/latest/download/garage-agent.apk always works.
+          cp "$apk" dist/garage-agent.apk
+          (cd dist && sha256sum "$name" garage-agent.apk > "$name.sha256")
 
       - uses: actions/upload-artifact@v4
         with:
@@ -73,6 +75,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* \
-            --title "Garage Agent ${{ steps.version.outputs.version }}" \
-            --notes "To install: open this page on your extra Android phone, tap garage-agent-${{ steps.version.outputs.version }}.apk, allow the install, and open Garage Agent. It walks you through the rest. The full guide, including the iPhone steps, is at https://github.com/${GITHUB_REPOSITORY}#readme"
+          version=${{ steps.version.outputs.version }}
+          notes="release-notes/$version.md"
+          [ -f "$notes" ] || { echo "::error::Write $notes before tagging"; exit 1; }
+          gh release create "$GITHUB_REF_NAME" dist/* --title "Garage Agent $version" --notes-file "$notes"
