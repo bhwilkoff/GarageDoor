@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.Process
+import android.view.Display
 
 /**
  * Runs as the shell user (app_process), never inside the app. Creates a
@@ -81,6 +82,23 @@ object DisplayHost {
             )).waitFor()
         }
         launch()
+
+        // The display has its own power group, which sleeps after the screen timeout when
+        // nothing taps on it; asleep, myQ draws nothing and the agent reads no door.
+        val watch = Handler(drain.looper)
+        val keepAwake = object : Runnable {
+            override fun run() {
+                if (vd.display.state != Display.STATE_ON) {
+                    println("display asleep; waking")
+                    System.out.flush()
+                    runCatching {
+                        Runtime.getRuntime().exec(arrayOf("input", "-d", id.toString(), "keyevent", "KEYCODE_WAKEUP")).waitFor()
+                    }
+                }
+                watch.postDelayed(this, 5_000L)
+            }
+        }
+        watch.post(keepAwake)
         Looper.loop()
     }
 }

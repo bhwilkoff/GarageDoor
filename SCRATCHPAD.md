@@ -9,7 +9,8 @@
 - **Next actions**:
   1. Owner adds the second door in myQ; confirm it appears in Home under
      its myQ name and moves only itself.
-  2. Watch for Google's email confirming the package registration.
+  2. Tag v1.3 so CI publishes it, once the timeout check passes.
+  3. Watch for Google's email confirming the package registration.
 - **Open questions**:
   1. Family members: Apple Home sharing, when wanted.
 
@@ -61,4 +62,12 @@
 - **Then**: multi-door support (Decision 008), verified with a pretend
   second door from the owner's iPhone; ConfiguredName fixed identical
   labels in Home. 1.2 on the Pixel, test door off.
-- **Left**: Pixel on 1.2, one real door, closed.
+- **Then (13:50, owner away)**: Home showed No Response. The hidden
+  display's own power group had slept on the screen timeout (state OFF,
+  myQ drew nothing, agent read "no myQ door"). Probably hidden until now
+  because taps from commands kept it awake; the 08:12 reboot made a fresh
+  display. Woke it by hand (`input -d <id> keyevent KEYCODE_WAKEUP`), door
+  read CLOSED. 1.3: DisplayHost wakes its display every 5 s if it is off.
+  Installed over 1.2 from the Mac; agent restarted DisplayHost, read the door.
+- **Left**: Pixel on 1.3 (local signed build, not yet tagged or released),
+  one real door, closed.

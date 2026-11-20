@@ -20,7 +20,7 @@ android {
         applicationId = "org.humanshaped.garageagent"
         minSdk = 33
         targetSdk = 36
-        versionCode = 4
+        versionCode = 5
         versionName = marketingVersion
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
