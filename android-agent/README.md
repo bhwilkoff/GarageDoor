@@ -59,18 +59,61 @@ Garage Agent is one of the apps built with the
    4. **Permissions** and 5. **Private myQ screen** finish on their own
       within a minute.
    6. **Door reading** shows the door's state.
-3. **On the iPhone**, open **Home**, tap **+ > Add Accessory > More
-   options**, choose **Garage Door**, tap **Add Anyway** (it is not
-   MFi-certified), and enter the setup code shown at the top of Garage
-   Agent.
-4. Add the control: **Control Center** (swipe down, long-press, Add a
-   Control, Home) or **Lock Screen** (long-press the lock screen,
-   Customize, Lock Screen, tap a control slot, Home). Pick the garage
-   door. Home asks for Face ID before opening a garage door from the lock
-   screen.
+3. **On the iPhone**, add the door to Apple Home and to your lock screen.
+   See [On the iPhone](#on-the-iphone) below.
 
 When every step says **Done**, the line at the top of Garage Agent reads
 "Everything is working" and you can close the app.
+
+### On the iPhone
+
+You need iOS 18 or later for lock-screen and Control Center controls
+(adding the door to Home works on older versions). **Keep the iPhone on
+the same Wi-Fi as the Android phone while you add it**; afterwards it
+works from anywhere through your Home hub.
+
+**Add the door to Home**
+
+1. Open the **Home** app and tap **+** (top right), then **Add
+   Accessory**. A camera scanner opens.
+2. Don't scan anything. Tap **More options...** under the scanner. A list
+   of accessories nearby appears.
+3. Tap **Garage Door**.
+4. iOS warns that this is an **Uncertified Accessory**: Apple has not
+   certified it, because it is a home-built accessory, not a product.
+   Tap **Add Anyway**.
+5. Enter the eight-digit **setup code** shown at the top of Garage Agent
+   on the Android phone (it is shown only until a Home is paired).
+6. Pick a room and keep or change the name. Done: the door shows its real
+   state (Open, Closed, Opening, Closing) in the Home app.
+
+**Put it on the lock screen or in Control Center**
+
+- **Lock screen**: long-press the lock screen, tap **Customize**, then
+  **Lock Screen**. Remove one of the two controls at the bottom (tap −),
+  tap the empty slot (+), search for **Home**, choose **Accessory**, and
+  pick the garage door. Tap **Done**.
+- **Control Center**: swipe down from the top right, long-press an empty
+  area, tap **Add a Control**, search for **Home**, choose **Accessory**,
+  and pick the garage door.
+
+Opening a garage door from the lock screen asks for Face ID first; Apple
+treats garage doors as secure accessories. **Siri** works too: "Hey Siri,
+open the garage door" or "Is the garage door open?".
+
+**Let family members use it**
+
+In the Home app: **...** (top right) > **Home Settings** > **Invite
+People**, and invite them by Apple Account. Once they accept, the garage
+door is in their Home app and they can add it to their own lock screen.
+Nothing changes on the Android phone.
+
+**If you reinstall Garage Agent**
+
+A fresh install is a new accessory with a new setup code. In the Home
+app, long-press the old **Garage Door** (it shows No Response), scroll
+down, tap **Remove Accessory**, then add the new one as above and put it
+back on your lock screen.
 
 ### Updates
 
@@ -117,6 +160,9 @@ retry right away.
 | No Response, all the time | myQ signed out, or a myQ update changed its screens | Open Garage Agent; step 6 shows the problem. Open myQ to sign in |
 | The control works at home but not away | No Home hub, or the hub is off | Check Home > Home Settings > Home Hubs |
 | Commands briefly show on the phone's screen | The hidden screen is down; the agent used the real one | Garage Agent step 5; it restarts on its own |
+| **Garage Door** is not in the list under More options | The iPhone is on a different Wi-Fi (or a guest network), or the door is already paired | Put both phones on the same Wi-Fi. If Garage Agent shows no setup code, it is paired already: remove it from the other Home, or long-press **Reset Apple Home** in Garage Agent |
+| Home says the setup code is wrong, or adding fails | A typo, or an old pairing attempt got stuck | Check the code at the top of Garage Agent and try again. Still failing: long-press **Reset Apple Home** in Garage Agent and start over |
+| An old **Garage Door** shows No Response next to a working one | Left over from a reinstall | Long-press it > **Remove Accessory** |
 | Garage Agent step 3 says the phone no longer accepts the agent's key | The pairing was removed, or wireless debugging is off | Tap Pair again |
 
 **Asking for help.** Tap **Share report** in Garage Agent. It makes a
