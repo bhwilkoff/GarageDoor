@@ -9,7 +9,8 @@
 - **Next actions**:
   1. Owner adds the second door in myQ; confirm it appears in Home under
      its myQ name and moves only itself.
-  2. Tag v1.3 so CI publishes it, once the timeout check passes.
+  2. If Home shows No Response again, check `/data/local/tmp/displayhost.log`
+     for "display asleep; waking" to see whether the watchdog fired.
   3. Watch for Google's email confirming the package registration.
 - **Open questions**:
   1. Family members: Apple Home sharing, when wanted.
@@ -69,5 +70,7 @@
   display. Woke it by hand (`input -d <id> keyevent KEYCODE_WAKEUP`), door
   read CLOSED. 1.3: DisplayHost wakes its display every 5 s if it is off.
   Installed over 1.2 from the Mac; agent restarted DisplayHost, read the door.
-- **Left**: Pixel on 1.3 (local signed build, not yet tagged or released),
-  one real door, closed.
+- **Then**: 3 h watch (14:47 to 17:43): hidden display never slept, so
+  the watchdog never fired; what sets that group's sleep is still unknown.
+  Owner: "Everyone should have access to this update." Tagged v1.3.
+- **Left**: Pixel on 1.3, v1.3 released by CI, one real door, closed.
