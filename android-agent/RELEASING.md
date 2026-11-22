@@ -14,7 +14,7 @@ whole developer account at risk, along with every other app in it
 | Keystore (PKCS12, alias `garage-agent`) | login Keychain, `garagedoor:ANDROID_KEYSTORE_P12_1..n` (base64 in parts); `release.sh` decodes it to a temp file for the build and removes it |
 | Keystore password | login Keychain, `garagedoor:ANDROID_KEYSTORE_PASSWORD` |
 | CI copies | GitHub secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` (`tools/secrets.sh sync-ci`) |
-| Moving an old setup in | `tools/secrets.sh keychain-import-android [--delete]`; until then `release.sh` falls back to `~/.config/humanshaped/garage-agent/release.p12` and the service `humanshaped-garage-agent-signing` |
+| Moving an old setup in | `tools/secrets.sh keychain-import-android [--delete]`; done 2026-11-22 (the old `~/.config/humanshaped/garage-agent/release.p12` is gone); `release.sh` keeps that path only as a fallback and the service `humanshaped-garage-agent-signing` |
 | Certificate SHA-256 | `e8ff0012f92ad5bb7b70ddfc4d28470ca284e4c00bfca8b0a199c94771386464` |
 
 **The key is the one thing that can't be replaced.** If it is lost, no
