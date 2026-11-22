@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
-# Builds a signed release APK on the owner's Mac. The keystore lives outside
-# the repository and its password in the macOS Keychain (RELEASING.md).
+# Builds a signed release APK on the owner's Mac. The keystore and its password
+# live in the macOS Keychain (RELEASING.md).
 # CI builds the same thing from GitHub secrets on every version tag.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-store="${SIGNING_STORE_FILE:-$HOME/.config/humanshaped/garage-agent/release.p12}"
-[ -f "$store" ] || { echo "error: no keystore at $store (see RELEASING.md)" >&2; exit 1; }
-SIGNING_STORE_PASSWORD="${SIGNING_STORE_PASSWORD:-$(security find-generic-password -s humanshaped-garage-agent-signing -w)}"
+# Credentials come from the login Keychain at use time (tools/secrets.sh keychain-import-android);
+# the old keystore file and password item remain a fallback until the owner has migrated.
+kc() { security find-generic-password -a garagedoor -s "garagedoor:$1" -w 2>/dev/null; }
+if [ -z "${SIGNING_STORE_FILE:-}" ] && kc ANDROID_KEYSTORE_P12_PARTS >/dev/null; then
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  for ((i = 1; i <= $(kc ANDROID_KEYSTORE_P12_PARTS); i++)); do kc "ANDROID_KEYSTORE_P12_$i" | tr -d '\n'; done | base64 -d > "$tmp/release.p12"
+  store="$tmp/release.p12"
+else
+  store="${SIGNING_STORE_FILE:-$HOME/.config/humanshaped/garage-agent/release.p12}"
+fi
+[ -f "$store" ] || { echo "error: no keystore in the Keychain or at $store (see RELEASING.md)" >&2; exit 1; }
+SIGNING_STORE_PASSWORD="${SIGNING_STORE_PASSWORD:-$(kc ANDROID_KEYSTORE_PASSWORD || security find-generic-password -s humanshaped-garage-agent-signing -w)}"
 export SIGNING_STORE_FILE="$store" SIGNING_STORE_PASSWORD
 
 studio_jbr="/Applications/Android Studio.app/Contents/jbr/Contents/Home"

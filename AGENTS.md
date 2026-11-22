@@ -83,6 +83,7 @@ don't re-derive a pattern.
 | Choosing or changing how the app talks to myQ, IFTTT, or local hardware | `third-party-revocation-resilience` |
 | A small server or proxy (a Worker holding a token, a webhook relay) | `zero-cost-hosted-backend` |
 | Signing in to a third-party account, OAuth, token storage | `authentication` + `ios-security` |
+| Any key, password, token, or signing file | `secrets-without-bookkeeping` |
 | Local hardware exposed to Apple Home (HomeKit accessory) | `homekit` |
 | HTTP calls from Swift | `ios-networking` + `swift-concurrency` |
 | **The lock screen** | |
@@ -112,6 +113,8 @@ don't re-derive a pattern.
   or any account credential or token lives in the iOS Keychain (shared
   with the widget extension through an access group) or in a server's
   secret store. Never in `UserDefaults`, a plist, or a committed file.
+  The owner keeps no keys: values move only through `tools/secrets.sh`
+  (`secrets-without-bookkeeping`). *Check: `tools/test_no_secrets.py`.*
 - **The door never moves without an explicit tap or spoken request.** No
   automation that opens the door on its own (location, schedule) unless
   the owner asks for it by name and DECISIONS.md records it.

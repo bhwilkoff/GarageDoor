@@ -37,7 +37,9 @@ ROKU_CHANNEL_NAME = "AppName"
 # --- Product health (tools/pulse_collect.py, /pulse) --------------------------
 # The numeric App Store id, from the listing URL or `v1/apps?filter[bundleId]=`.
 APPLE_APP_STORE_ID = ""                           # e.g. "1234567890"
-GITHUB_REPO = ""                                  # e.g. "owner/Repo"
+GITHUB_REPO = "bhwilkoff/GarageDoor"
+# tools/secrets.sh: the Keychain account and service prefix (`garagedoor:ANDROID_KEYSTORE_P12`).
+SECRETS_NAME = "garagedoor"
 PRODUCT_NAME = "AppName"                          # how a human writes it
 PRODUCT_SITE = "https://example.com"              # the public site, no slash
 # What counts as somebody talking about US when searching the open web. The

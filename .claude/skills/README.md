@@ -42,3 +42,4 @@ its body is the method.
 - `ios-simulator`: simctl builds, screenshots, launch doors.
 - `swift-testing`: tests for Core logic.
 - `web-platform-patterns`: vanilla web, offline, deploys.
+- `secrets-without-bookkeeping`: no key for the owner to keep; values move only through `tools/secrets.sh`; a scan fails every commit and CI run.
